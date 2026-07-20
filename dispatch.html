@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PISO Dispatch – Send Job to Tech</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a3a5c;
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    header svg { flex-shrink: 0; }
+    header h1 { font-size: 20px; font-weight: 700; }
+    header p { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+
+    .container {
+      max-width: 640px;
+      margin: 32px auto;
+      padding: 0 16px 48px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1a3a5c;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    label .req { color: #e74c3c; margin-left: 2px; }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #dce3ec;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #1a1a2e;
+      background: #fafbfc;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2e86de;
+      background: white;
+    }
+
+    textarea { min-height: 100px; resize: vertical; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* Form type selector */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .type-radio { display: none; }
+    .type-label {
+      display: block;
+      padding: 14px 10px;
+      border: 2px solid #dce3ec;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+    }
+    .type-icon { display: block; font-size: 24px; margin-bottom: 6px; }
+    .type-radio:checked + .type-label {
+      border-color: #2e86de;
+      background: #f0f7ff;
+      color: #1a3a5c;
+    }
+
+    /* Preview link box */
+    .link-preview {
+      background: #f0f7ff;
+      border: 1.5px solid #2e86de;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .link-preview.show { display: block; }
+    .link-preview-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #2e86de;
+      margin-bottom: 6px;
+    }
+    .link-preview-url {
+      font-size: 12px;
+      color: #444;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    /* Send button */
+    .send-btn {
+      width: 100%;
+      padding: 16px;
+      background: #2e86de;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .send-btn:hover { background: #1a6fc4; }
+    .send-btn:active { background: #155a9e; transform: scale(0.99); }
+    .send-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    .sent-confirm {
+      display: none;
+      background: #d9ead3;
+      border: 1.5px solid #27ae60;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #1a5c2a;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 14px;
+    }
+    .sent-confirm.show { display: block; }
+
+    .another-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      background: none;
+      border: 2px solid #1a3a5c;
+      color: #1a3a5c;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .another-btn:hover { background: #1a3a5c; color: white; }
+
+    .hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    /* Dispatcher selector */
+    .dispatcher-chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .disp-radio { display: none; }
+    .disp-label {
+      padding: 8px 16px;
+      border: 2px solid #dce3ec;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #666;
+    }
+    .disp-radio:checked + .disp-label {
+      background: #1a3a5c;
+      color: white;
+      border-color: #1a3a5c;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <rect width="36" height="36" rx="9" fill="#2e86de"/>
+    <path d="M10 26 L18 12 L26 26" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18" cy="12" r="2.5" fill="white"/>
+    <rect x="13" y="21" width="10" height="2.5" rx="1.25" fill="white"/>
+  </svg>
+  <div>
+    <h1>PISO Dispatch</h1>
+    <p>Send a job assignment to a field tech</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- WHO IS DISPATCHING -->
+  <div class="card">
+    <div class="card-title">Dispatcher</div>
+    <div class="field">
+      <label>Sending as <span class="req">*</span></label>
+      <div class="dispatcher-chips">
+        <input class="disp-radio" type="radio" name="dispatcher" id="disp-kathy" value="Kathy Hendrick" data-email="kathy@pisoev.com">
+        <label class="disp-label" for="disp-kathy">Kathy Hendrick</label>
+        <input class="disp-radio" type="radio" name="dispatcher" id="disp-adrienne" value="Adrienne Fletcher" data-email="Afletcher@pisoev.com">
+        <label class="disp-label" for="disp-adrienne">Adrienne Fletcher</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOB DETAILS -->
+  <div class="card">
+    <div class="card-title">Job Details</div>
+
+    <div class="field">
+      <label>Assign To <span class="req">*</span></label>
+      <select id="tech-select">
+        <option value="">— Select tech —</option>
+        <option value="Jeff Gillert" data-email="jgillert@pisoev.com">Jeff Gillert</option>
+        <option value="Mike Bermas" data-email="mike@pisoev.com">Mike Bermas</option>
+        <option value="Rick Gorleski" data-email="rick@pisoev.com">Rick Gorleski</option>
+        <option value="Frank Whithem" data-email="frank@pisoev.com">Frank Whithem</option>
+        <option value="John Fasoldt" data-email="jfasoldt@pisoev.com">John Fasoldt</option>
+        <option value="Nate Novitsky" data-email="nnovitsky@pisoev.com">Nate Novitsky</option>
+        <option value="Steven Doran" data-email="jsdoran@pisoev.com">Steven Doran</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Form Type <span class="req">*</span></label>
+      <div class="type-grid">
+        <div>
+          <input class="type-radio" type="radio" name="form-type" id="type-completion" value="completion">
+          <label class="type-label" for="type-completion">
+            <span class="type-icon">✅</span>Job Complete
+          </label>
+        </div>
+        <div>
+          <input class="type-radio" type="radio" name="form-type" id="type-issue" value="issue">
+          <label class="type-label" for="type-issue">
+            <span class="type-icon">⚠️</span>Issue Ticket
+          </label>
+        </div>
+        <div>
+          <input class="type-radio" type="radio" name="form-type" id="type-inspection" value="inspection">
+          <label class="type-label" for="type-inspection">
+            <span class="type-icon">🔍</span>Inspection
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Site / Location <span class="req">*</span></label>
+      <input type="text" id="site" placeholder="e.g. Hilton Garden Inn – Albany, NY">
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label>Work Order #</label>
+        <input type="text" id="workorder" placeholder="WO-00000">
+      </div>
+      <div class="field">
+        <label>Charger / Equipment ID</label>
+        <input type="text" id="charger" placeholder="CHR-042">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Job Date</label>
+      <input type="date" id="job-date">
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS TO TECH -->
+  <div class="card">
+    <div class="card-title">Instructions for Tech</div>
+    <div class="field">
+      <textarea id="instructions" placeholder="e.g. Customer contact is Tom at 518-555-0100. Gate code is 4821. Park in the rear lot. Priority is getting charger #3 back online — it's been down since Friday."></textarea>
+      <p class="hint">This will appear in the email body. The tech will see this before opening the form.</p>
+    </div>
+  </div>
+
+  <!-- LINK PREVIEW -->
+  <div class="link-preview" id="link-preview">
+    <div class="link-preview-label">Form link that will be sent</div>
+    <div class="link-preview-url" id="link-preview-url"></div>
+  </div>
+
+  <!-- SEND BUTTON -->
+  <button class="send-btn" id="send-btn" onclick="sendJob()">
+    <span>📧</span> Send to Tech
+  </button>
+
+  <div class="sent-confirm" id="sent-confirm">
+    ✅ Email draft opened — review and hit Send in your email app.
+  </div>
+
+  <button class="another-btn" id="another-btn" style="display:none;" onclick="resetForm()">
+    Send Another Assignment
+  </button>
+
+</div>
+
+<script>
+  // ─── CONFIG ──────────────────────────────────────────────────────
+  const FORM_BASE_URL = 'https://jcarpenter-piso.github.io/piso-field-report';
+  // ─────────────────────────────────────────────────────────────────
+
+  // Update link preview as user fills in fields
+  function updatePreview() {
+    const url = buildUrl();
+    const preview = document.getElementById('link-preview');
+    const previewUrl = document.getElementById('link-preview-url');
+    if (url) {
+      previewUrl.textContent = url;
+      preview.classList.add('show');
+    } else {
+      preview.classList.remove('show');
+    }
+  }
+
+  function buildUrl() {
+    const tech = document.getElementById('tech-select').value;
+    const site = document.getElementById('site').value.trim();
+    const tab = document.querySelector('[name="form-type"]:checked')?.value;
+    if (!tech || !site || !tab) return null;
+
+    const params = new URLSearchParams();
+    params.set('tech', tech);
+    params.set('site', site);
+    params.set('tab', tab);
+
+    const workorder = document.getElementById('workorder').value.trim();
+    if (workorder) params.set('workorder', workorder);
+
+    const charger = document.getElementById('charger').value.trim();
+    if (charger) params.set('charger', charger);
+
+    const date = document.getElementById('job-date').value;
+    if (date) params.set('date', date);
+
+    return `${FORM_BASE_URL}?${params.toString()}`;
+  }
+
+  function sendJob() {
+    // Validate
+    const dispatcher = document.querySelector('[name="dispatcher"]:checked');
+    if (!dispatcher) { alert('Please select who is sending this.'); return; }
+
+    const techSel = document.getElementById('tech-select');
+    const techName = techSel.value;
+    if (!techName) { alert('Please select a tech.'); return; }
+
+    const site = document.getElementById('site').value.trim();
+    if (!site) { alert('Please enter the site / location.'); return; }
+
+    const tab = document.querySelector('[name="form-type"]:checked')?.value;
+    if (!tab) { alert('Please select a form type.'); return; }
+
+    const url = buildUrl();
+    const techEmail = techSel.options[techSel.selectedIndex].dataset.email;
+    const techFirstName = techName.split(' ')[0];
+    const formLabel = tab === 'completion' ? 'Job Completion Report'
+                    : tab === 'issue'      ? 'Issue Ticket'
+                    :                        'Site Inspection';
+    const workorder = document.getElementById('workorder').value.trim();
+    const instructions = document.getElementById('instructions').value.trim();
+    const dispatcherName = dispatcher.value;
+
+    const subject = `Job Assignment: ${formLabel} – ${site}${workorder ? ' [' + workorder + ']' : ''}`;
+
+    const body = [
+      `Hi ${techFirstName},`,
+      '',
+      `You've been assigned a ${formLabel} at ${site}.${workorder ? ' Work Order: ' + workorder + '.' : ''}`,
+      '',
+      instructions ? `Notes from ${dispatcherName}:\n${instructions}` : '',
+      instructions ? '' : '',
+      'When you arrive on site, use the link below to complete your report and submit photos:',
+      '',
+      url,
+      '',
+      'Your name and job details are already filled in — just complete the form and hit Submit.',
+      '',
+      `– ${dispatcherName}`,
+      'PISO Field Operations',
+    ].filter(line => line !== null).join('\n');
+
+    // Open mailto
+    const mailto = `mailto:${techEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+
+    // Show confirmation
+    document.getElementById('sent-confirm').classList.add('show');
+    document.getElementById('another-btn').style.display = 'block';
+  }
+
+  function resetForm() {
+    document.getElementById('tech-select').value = '';
+    document.getElementById('site').value = '';
+    document.getElementById('workorder').value = '';
+    document.getElementById('charger').value = '';
+    document.getElementById('instructions').value = '';
+    document.getElementById('job-date').value = '';
+    document.querySelectorAll('[name="form-type"]').forEach(r => r.checked = false);
+    document.getElementById('link-preview').classList.remove('show');
+    document.getElementById('sent-confirm').classList.remove('show');
+    document.getElementById('another-btn').style.display = 'none';
+  }
+
+  // Live preview updates
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('job-date').value = new Date().toISOString().split('T')[0];
+    ['tech-select', 'site', 'workorder', 'charger', 'job-date'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePreview);
+    });
+    document.querySelectorAll('[name="form-type"]').forEach(r => {
+      r.addEventListener('change', updatePreview);
+    });
+  });
+</script>
+</body>
+</html>
