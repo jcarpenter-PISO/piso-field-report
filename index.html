@@ -867,7 +867,7 @@
       photos = photoFiles['preview-inspection'] || [];
     }
 
-    const payload = { ...common, ...specific, photos };
+    const payload = { ...common, ...specific, photos, dispatchedBy };
 
     // Show loading
     document.getElementById('loading').classList.add('show');
@@ -877,7 +877,7 @@
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
       });
 
@@ -914,10 +914,12 @@
   }
 
   // ─── URL PARAMETER PRE-FILL ──────────────────────────────────────
-  // Supported params: tech, site, workorder, charger, tab, date
-  // Example: ?tech=Jeff+Gillert&site=Albany+Hilton&workorder=WO-00123&tab=inspection
+  // Supported params: tech, site, workorder, charger, tab, date, dispatched_by
+  let dispatchedBy = ''; // dispatcher email, captured from URL param
+
   function applyUrlParams() {
     const params = new URLSearchParams(window.location.search);
+    dispatchedBy = params.get('dispatched_by') || '';
 
     const tech = params.get('tech');
     if (tech) {

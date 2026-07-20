@@ -208,34 +208,31 @@
     .send-btn:active { background: #155a9e; transform: scale(0.99); }
     .send-btn:disabled { background: #aaa; cursor: not-allowed; }
 
-    .sent-confirm {
+    /* Success screen */
+    #success-screen {
       display: none;
-      background: #d9ead3;
-      border: 1.5px solid #27ae60;
-      border-radius: 10px;
-      padding: 14px 16px;
-      font-size: 14px;
-      color: #1a5c2a;
-      font-weight: 600;
       text-align: center;
-      margin-top: 14px;
+      padding: 80px 20px;
+      max-width: 480px;
+      margin: 0 auto;
     }
-    .sent-confirm.show { display: block; }
-
+    #success-screen.show { display: block; }
+    .success-icon { font-size: 80px; }
+    .success-title { font-size: 26px; font-weight: 700; color: #27ae60; margin: 20px 0 10px; }
+    .success-sub { font-size: 15px; color: #555; margin-bottom: 8px; line-height: 1.6; }
+    .success-detail { font-size: 13px; color: #999; margin-bottom: 32px; }
     .another-btn {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      background: none;
-      border: 2px solid #1a3a5c;
-      color: #1a3a5c;
+      padding: 14px 32px;
+      background: #1a3a5c;
+      color: white;
+      border: none;
       border-radius: 10px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.15s;
     }
-    .another-btn:hover { background: #1a3a5c; color: white; }
+    .another-btn:hover { background: #15304d; }
 
     .hint {
       font-size: 12px;
@@ -424,14 +421,15 @@
     <span>📧</span> Send to Tech
   </button>
 
-  <div class="sent-confirm" id="sent-confirm">
-    ✅ Email draft opened — review and hit Send in your email app.
-  </div>
+</div>
 
-  <button class="another-btn" id="another-btn" style="display:none;" onclick="resetForm()">
-    Send Another Assignment
-  </button>
-
+<!-- Success screen (outside container, full page) -->
+<div id="success-screen">
+  <div class="success-icon">✅</div>
+  <div class="success-title">Assignment Sent!</div>
+  <div class="success-sub" id="success-detail"></div>
+  <div class="success-detail">A Gmail compose window opened in a new tab — make sure to hit Send if you haven't already.</div>
+  <button class="another-btn" onclick="resetForm()">Send Another Assignment</button>
 </div>
 
 <!-- Loading overlay -->
@@ -509,10 +507,14 @@
     const tab = document.querySelector('[name="form-type"]:checked')?.value;
     if (!tech || !site || !tab) return null;
 
+    const dispatcherEl = document.querySelector('[name="dispatcher"]:checked');
+    const dispatcherEmail = dispatcherEl ? dispatcherEl.dataset.email : '';
+
     const params = new URLSearchParams();
     params.set('tech', tech);
     params.set('site', site);
     params.set('tab', tab);
+    if (dispatcherEmail) params.set('dispatched_by', dispatcherEmail);
 
     const workorder = document.getElementById('workorder').value.trim();
     if (workorder) params.set('workorder', workorder);
@@ -622,8 +624,12 @@
     const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(techEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(gmailUrl, '_blank');
 
-    document.getElementById('sent-confirm').classList.add('show');
-    document.getElementById('another-btn').style.display = 'block';
+    // Show success screen
+    document.querySelector('.container').style.display = 'none';
+    const screen = document.getElementById('success-screen');
+    screen.classList.add('show');
+    document.getElementById('success-detail').textContent =
+      `${techName} has been assigned a ${formLabel} at ${site}.`;
     document.getElementById('send-btn').disabled = false;
   }
 
@@ -637,8 +643,8 @@
     document.querySelectorAll('[name="form-type"]').forEach(r => r.checked = false);
     document.querySelectorAll('[name="dispatcher"]').forEach(r => r.checked = false);
     document.getElementById('link-preview').classList.remove('show');
-    document.getElementById('sent-confirm').classList.remove('show');
-    document.getElementById('another-btn').style.display = 'none';
+    document.getElementById('success-screen').classList.remove('show');
+    document.querySelector('.container').style.display = 'block';
     document.getElementById('file-list').innerHTML = '';
     attachedFiles = [];
   }
