@@ -568,7 +568,7 @@
 
         const response = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(uploadPayload),
         });
 
@@ -618,9 +618,9 @@
 
     const body = lines.join('\n');
 
-    // ── Open email client ──
-    const mailto = `mailto:${techEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
+    // ── Open Gmail compose window ──
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(techEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, '_blank');
 
     document.getElementById('sent-confirm').classList.add('show');
     document.getElementById('another-btn').style.display = 'block';
