@@ -912,10 +912,46 @@
     return new Date().toISOString().split('T')[0];
   }
 
+  // ─── URL PARAMETER PRE-FILL ──────────────────────────────────────
+  // Supported params: tech, site, workorder, charger, tab, date
+  // Example: ?tech=Jeff+Gillert&site=Albany+Hilton&workorder=WO-00123&tab=inspection
+  function applyUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+
+    const tech = params.get('tech');
+    if (tech) {
+      const sel = document.getElementById('tech-name');
+      Array.from(sel.options).forEach(opt => {
+        if (opt.value.toLowerCase() === tech.toLowerCase()) sel.value = opt.value;
+      });
+    }
+
+    const site = params.get('site');
+    if (site) document.getElementById('site-location').value = site;
+
+    const workorder = params.get('workorder');
+    if (workorder) document.getElementById('work-order').value = workorder;
+
+    const charger = params.get('charger');
+    if (charger) document.getElementById('charger-id').value = charger;
+
+    const date = params.get('date');
+    if (date) document.getElementById('job-date').value = date;
+
+    const tab = params.get('tab');
+    if (tab && ['completion', 'issue', 'inspection'].includes(tab)) {
+      const tabBtn = document.querySelector(`.tab-btn:nth-child(${
+        tab === 'completion' ? 1 : tab === 'issue' ? 2 : 3
+      })`);
+      if (tabBtn) switchTab(tab, tabBtn);
+    }
+  }
+
   // Init
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('job-date').value = today();
     buildChecklist();
+    applyUrlParams();
   });
 </script>
 </body>
