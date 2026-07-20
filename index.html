@@ -665,6 +665,12 @@
   <button class="new-report-btn" onclick="resetForm()">Submit Another Report</button>
 </div>
 
+<!-- Hidden form for Apps Script submission (bypasses CORS redirect issue) -->
+<iframe name="hidden-submit-frame" style="display:none"></iframe>
+<form id="hidden-submit-form" method="POST" action="https://script.google.com/a/macros/pisoev.com/s/AKfycbwCijp2QzYVfwlDYuFilSBUYeyp5jfnt4EDE2zUajjbuxnMSCpcW47tNBbJ9xCCi9av/exec" target="hidden-submit-frame" style="display:none">
+  <input type="hidden" name="data" id="payload-data">
+</form>
+
 <!-- Loading overlay -->
 <div id="loading">
   <div class="spinner"></div>
@@ -751,14 +757,34 @@
     if (!photoFiles[panelKey]) photoFiles[panelKey] = [];
 
     Array.from(input.files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        photoFiles[panelKey].push({ name: file.name, data: e.target.result });
+      compressImage(file, compressed => {
+        photoFiles[panelKey].push(compressed);
         renderPreviews(panelKey);
-      };
-      reader.readAsDataURL(file);
+      });
     });
-    input.value = ''; // reset so same file can be re-added
+    input.value = '';
+  }
+
+  function compressImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 1200;
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round(height * maxSize / width); width = maxSize; }
+          else { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        callback({ name: file.name, data: canvas.toDataURL('image/jpeg', 0.75) });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function renderPreviews(panelKey) {
@@ -873,24 +899,17 @@
     document.getElementById('loading').classList.add('show');
     document.getElementById('submit-btn').disabled = true;
 
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload),
-      });
+    // Use hidden iframe form submit to avoid CORS/redirect issues with Apps Script
+    document.getElementById('payload-data').value = JSON.stringify(payload);
+    document.getElementById('hidden-submit-form').submit();
 
+    // Show success after brief delay (form submits into hidden iframe)
+    setTimeout(() => {
       document.getElementById('loading').classList.remove('show');
       document.getElementById('main-content').style.display = 'none';
       document.querySelector('.form-type-tabs').style.display = 'none';
       document.getElementById('success-screen').classList.add('show');
-
-    } catch (err) {
-      document.getElementById('loading').classList.remove('show');
-      document.getElementById('submit-btn').disabled = false;
-      alert('Submission failed. Please check your connection and try again.\n\n' + err.message);
-    }
+    }, 1500);
   }
 
   function resetForm() {
