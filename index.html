@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PISO Field Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a3a5c;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    header svg { flex-shrink: 0; }
+
+    header h1 { font-size: 18px; font-weight: 600; }
+    header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+    .form-type-tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 14px 8px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      color: #1a3a5c;
+      border-bottom-color: #2e86de;
+      background: #f8fafc;
+    }
+
+    .tab-icon { display: block; font-size: 20px; margin-bottom: 4px; }
+
+    .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1a3a5c;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    label .req { color: #e74c3c; margin-left: 2px; }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #dce3ec;
+      border-radius: 8px;
+      font-size: 16px;
+      color: #1a1a2e;
+      background: #fafbfc;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2e86de;
+      background: white;
+    }
+
+    textarea { min-height: 88px; resize: vertical; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Severity badges */
+    .badge-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge-input { display: none; }
+    .badge-label {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 2px solid #dce3ec;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .badge-input:checked + .badge-label { color: white; border-color: transparent; }
+    #sev-low:checked + .badge-label { background: #27ae60; }
+    #sev-med:checked + .badge-label { background: #f39c12; }
+    #sev-high:checked + .badge-label { background: #e67e22; }
+    #sev-crit:checked + .badge-label { background: #e74c3c; }
+
+    /* Status badges */
+    #stat-complete:checked + .badge-label { background: #27ae60; }
+    #stat-pending:checked + .badge-label { background: #f39c12; }
+    #stat-followup:checked + .badge-label { background: #2e86de; }
+    #stat-escalate:checked + .badge-label { background: #e74c3c; }
+
+    /* Inspection checklist */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .checklist-label { font-size: 14px; color: #333; flex: 1; padding-right: 12px; }
+    .check-options { display: flex; gap: 4px; flex-shrink: 0; }
+    .check-radio { display: none; }
+    .check-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1.5px solid #dce3ec;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .check-radio.pass:checked ~ .check-options-wrap .pass-btn,
+    .pass-radio:checked + .pass-btn { background: #27ae60; color: white; border-color: #27ae60; }
+
+    /* Rating stars */
+    .star-group { display: flex; gap: 6px; }
+    .star-input { display: none; }
+    .star-label { font-size: 28px; cursor: pointer; color: #dce3ec; transition: color 0.15s; }
+    .star-input:checked ~ .star-label { color: #f39c12; }
+    .star-group:hover .star-label { color: #f39c12; }
+    .star-label:hover ~ .star-label { color: #dce3ec; }
+
+    /* Photo upload */
+    .photo-upload-area {
+      border: 2px dashed #2e86de;
+      border-radius: 12px;
+      padding: 24px 16px;
+      text-align: center;
+      background: #f0f7ff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .photo-upload-area:hover { background: #e3f0ff; }
+    .photo-upload-area input { display: none; }
+    .photo-icon { font-size: 36px; }
+    .photo-text { font-size: 14px; color: #2e86de; font-weight: 600; margin-top: 8px; }
+    .photo-sub { font-size: 12px; color: #888; margin-top: 4px; }
+    .photo-previews {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .photo-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    /* Submit */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #1a3a5c;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 32px;
+      letter-spacing: 0.3px;
+    }
+    .submit-btn:hover { background: #15304d; }
+    .submit-btn:active { background: #0f2138; transform: scale(0.99); }
+    .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* Form panels */
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+
+    /* Success screen */
+    #success-screen {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    #success-screen.show { display: block; }
+    .success-icon { font-size: 72px; }
+    .success-title { font-size: 24px; font-weight: 700; color: #27ae60; margin: 16px 0 8px; }
+    .success-sub { font-size: 15px; color: #666; margin-bottom: 24px; }
+    .new-report-btn {
+      padding: 14px 28px;
+      background: #1a3a5c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Loading overlay */
+    #loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(26,58,92,0.85);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+    }
+    #loading.show { display: flex; }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Checklist tri-state */
+    .tri-group { display: flex; }
+    .tri-opt { display: none; }
+    .tri-lbl {
+      padding: 6px 10px;
+      border: 1.5px solid #dce3ec;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #888;
+    }
+    .tri-lbl:first-of-type { border-radius: 6px 0 0 6px; }
+    .tri-lbl:last-of-type { border-radius: 0 6px 6px 0; border-left: none; }
+    .tri-lbl:nth-of-type(2) { border-left: none; }
+    .pass-opt:checked + .tri-lbl { background: #27ae60; color: white; border-color: #27ae60; }
+    .fail-opt:checked + .tri-lbl { background: #e74c3c; color: white; border-color: #e74c3c; }
+    .na-opt:checked + .tri-lbl { background: #95a5a6; color: white; border-color: #95a5a6; }
+
+    /* Config notice */
+    .config-notice {
+      background: #fff8e1;
+      border: 1.5px solid #f9a825;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #795548;
+      margin-bottom: 16px;
+    }
+    .config-notice strong { display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill="#2e86de"/>
+    <path d="M8 22 L16 10 L24 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="16" cy="10" r="2" fill="white"/>
+    <rect x="11" y="18" width="10" height="2.5" rx="1.25" fill="white"/>
+  </svg>
+  <div>
+    <h1>PISO Field Report</h1>
+    <p>EV Infrastructure Field Operations</p>
+  </div>
+</header>
+
+<!-- Tab navigation -->
+<div class="form-type-tabs">
+  <button class="tab-btn active" onclick="switchTab('completion', this)">
+    <span class="tab-icon">✅</span>Job Complete
+  </button>
+  <button class="tab-btn" onclick="switchTab('issue', this)">
+    <span class="tab-icon">⚠️</span>Issue Ticket
+  </button>
+  <button class="tab-btn" onclick="switchTab('inspection', this)">
+    <span class="tab-icon">🔍</span>Inspection
+  </button>
+</div>
+
+<div id="main-content">
+  <div class="container">
+
+    <!-- ─────────────────────────────────────────
+         COMMON FIELDS (shown on all forms)
+    ───────────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Job Information</div>
+
+      <div class="field">
+        <label>Tech Name <span class="req">*</span></label>
+        <select id="tech-name" required>
+          <option value="">— Select your name —</option>
+          <option>Jeff Gillert</option>
+          <option>Mike Bermas</option>
+          <option>Rick Gorleski</option>
+          <option>Frank Whithem</option>
+          <option>John Fasoldt</option>
+          <option>Nate Novitsky</option>
+          <option>Steven Doran</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" id="job-date" required>
+        </div>
+        <div class="field">
+          <label>Time On Site</label>
+          <input type="time" id="job-time">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Site / Location <span class="req">*</span></label>
+        <input type="text" id="site-location" placeholder="e.g. Hilton Garden Inn – Albany, NY" required>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Work Order #</label>
+          <input type="text" id="work-order" placeholder="WO-00000">
+        </div>
+        <div class="field">
+          <label>Charger / Equipment ID</label>
+          <input type="text" id="charger-id" placeholder="e.g. CHR-042">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────
+         JOB COMPLETION FORM
+    ───────────────────────────────────────── -->
+    <div id="panel-completion" class="form-panel active">
+
+      <div class="section">
+        <div class="section-title">Work Details</div>
+
+        <div class="field">
+          <label>Work Type <span class="req">*</span></label>
+          <select id="work-type">
+            <option value="">— Select —</option>
+            <option>New Installation</option>
+            <option>Scheduled Maintenance (PM)</option>
+            <option>Corrective Repair</option>
+            <option>Network / Software Update</option>
+            <option>Customer Training</option>
+            <option>Site Survey</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Work Performed <span class="req">*</span></label>
+          <textarea id="work-performed" placeholder="Describe what was done…"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Parts / Materials Used</label>
+          <textarea id="parts-used" placeholder="List parts, quantities, part numbers…" style="min-height:64px;"></textarea>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label>Hours On Site</label>
+            <input type="number" id="hours-on-site" min="0" max="24" step="0.5" placeholder="e.g. 2.5">
+          </div>
+          <div class="field">
+            <label>Travel Hours</label>
+            <input type="number" id="travel-hours" min="0" max="24" step="0.5" placeholder="e.g. 1.0">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Job Status</div>
+        <div class="badge-group">
+          <input class="badge-input" type="radio" name="job-status" id="stat-complete" value="Complete" checked>
+          <label class="badge-label" for="stat-complete">✅ Complete</label>
+          <input class="badge-input" type="radio" name="job-status" id="stat-pending" value="Pending – Customer Action">
+          <label class="badge-label" for="stat-pending">⏳ Pending</label>
+          <input class="badge-input" type="radio" name="job-status" id="stat-followup" value="Needs Follow-Up">
+          <label class="badge-label" for="stat-followup">🔁 Follow-Up</label>
+          <input class="badge-input" type="radio" name="job-status" id="stat-escalate" value="Escalate">
+          <label class="badge-label" for="stat-escalate">🚨 Escalate</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Photos</div>
+        <div class="photo-upload-area" onclick="document.getElementById('photos-completion').click()">
+          <input type="file" id="photos-completion" multiple accept="image/*" capture="environment"
+                 onchange="handlePhotos(this, 'preview-completion')">
+          <div class="photo-icon">📷</div>
+          <div class="photo-text">Tap to add photos</div>
+          <div class="photo-sub">Before / after / any relevant photos</div>
+        </div>
+        <div class="photo-previews" id="preview-completion"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Additional Notes</div>
+        <textarea id="notes-completion" placeholder="Any other info, issues noticed, customer feedback…"></textarea>
+      </div>
+
+    </div><!-- /panel-completion -->
+
+
+    <!-- ─────────────────────────────────────────
+         ISSUE / TROUBLE TICKET FORM
+    ───────────────────────────────────────── -->
+    <div id="panel-issue" class="form-panel">
+
+      <div class="section">
+        <div class="section-title">Issue Details</div>
+
+        <div class="field">
+          <label>Problem Description <span class="req">*</span></label>
+          <textarea id="problem-desc" placeholder="What is happening? What did the customer report?"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Severity</label>
+          <div class="badge-group">
+            <input class="badge-input" type="radio" name="severity" id="sev-low" value="Low" checked>
+            <label class="badge-label" for="sev-low">🟢 Low</label>
+            <input class="badge-input" type="radio" name="severity" id="sev-med" value="Medium">
+            <label class="badge-label" for="sev-med">🟡 Medium</label>
+            <input class="badge-input" type="radio" name="severity" id="sev-high" value="High">
+            <label class="badge-label" for="sev-high">🟠 High</label>
+            <input class="badge-input" type="radio" name="severity" id="sev-crit" value="Critical">
+            <label class="badge-label" for="sev-crit">🔴 Critical</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Equipment Status</label>
+          <select id="equip-status">
+            <option value="">— Select —</option>
+            <option>Fully Operational</option>
+            <option>Degraded – Partially Functional</option>
+            <option>Offline – Not Charging</option>
+            <option>Safety Hazard – Do Not Use</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Error Codes / Fault Indicators</label>
+          <input type="text" id="error-codes" placeholder="e.g. E-204, GFCI fault, network timeout">
+        </div>
+
+        <div class="field">
+          <label>Troubleshooting Steps Taken</label>
+          <textarea id="troubleshooting" placeholder="What did you try? What were the results?"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Resolution / Next Steps Needed <span class="req">*</span></label>
+          <textarea id="resolution" placeholder="Was the issue resolved? What needs to happen next?"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Parts / Materials Needed</label>
+          <textarea id="parts-needed" placeholder="List any parts that need to be ordered…" style="min-height:64px;"></textarea>
+        </div>
+
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
+            <input type="checkbox" id="escalation-needed" style="width:18px;height:18px;">
+            Flag for immediate escalation to office
+          </label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Photos</div>
+        <div class="photo-upload-area" onclick="document.getElementById('photos-issue').click()">
+          <input type="file" id="photos-issue" multiple accept="image/*" capture="environment"
+                 onchange="handlePhotos(this, 'preview-issue')">
+          <div class="photo-icon">📷</div>
+          <div class="photo-text">Tap to add photos</div>
+          <div class="photo-sub">Equipment, error displays, damage, etc.</div>
+        </div>
+        <div class="photo-previews" id="preview-issue"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Additional Notes</div>
+        <textarea id="notes-issue" placeholder="Anything else the team should know…"></textarea>
+      </div>
+
+    </div><!-- /panel-issue -->
+
+
+    <!-- ─────────────────────────────────────────
+         SITE INSPECTION FORM
+    ───────────────────────────────────────── -->
+    <div id="panel-inspection" class="form-panel">
+
+      <div class="section">
+        <div class="section-title">Inspection Details</div>
+
+        <div class="field">
+          <label>Inspection Type</label>
+          <select id="inspection-type">
+            <option value="">— Select —</option>
+            <option>Pre-Installation Survey</option>
+            <option>Post-Installation QC</option>
+            <option>Routine / Scheduled Inspection</option>
+            <option>Code Compliance Review</option>
+            <option>Warranty Inspection</option>
+            <option>Customer Request</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Inspection Checklist</div>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">Mark each item: PASS / FAIL / N/A</p>
+
+        <div id="checklist-items">
+          <!-- Checklist items generated by JS -->
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Overall Site Condition</div>
+        <div class="star-group" id="star-rating">
+          <input class="star-input" type="radio" name="site-rating" id="star5" value="5">
+          <input class="star-input" type="radio" name="site-rating" id="star4" value="4">
+          <input class="star-input" type="radio" name="site-rating" id="star3" value="3" checked>
+          <input class="star-input" type="radio" name="site-rating" id="star2" value="2">
+          <input class="star-input" type="radio" name="site-rating" id="star1" value="1">
+          <label class="star-label" for="star5">★</label>
+          <label class="star-label" for="star4">★</label>
+          <label class="star-label" for="star3">★</label>
+          <label class="star-label" for="star2">★</label>
+          <label class="star-label" for="star1">★</label>
+        </div>
+        <p style="font-size:12px;color:#888;margin-top:8px;">1 = Poor · 5 = Excellent</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Action Items Required</div>
+        <textarea id="action-items" placeholder="List any follow-up work, repairs, or code corrections needed…"></textarea>
+        <div class="field" style="margin-top:12px;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer;">
+            <input type="checkbox" id="reinspection-needed" style="width:18px;height:18px;">
+            Reinspection required
+          </label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Photos</div>
+        <div class="photo-upload-area" onclick="document.getElementById('photos-inspection').click()">
+          <input type="file" id="photos-inspection" multiple accept="image/*" capture="environment"
+                 onchange="handlePhotos(this, 'preview-inspection')">
+          <div class="photo-icon">📷</div>
+          <div class="photo-text">Tap to add photos</div>
+          <div class="photo-sub">Site conditions, equipment, deficiencies, etc.</div>
+        </div>
+        <div class="photo-previews" id="preview-inspection"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Additional Notes</div>
+        <textarea id="notes-inspection" placeholder="Inspector notes, site access info, contacts met on site…"></textarea>
+      </div>
+
+    </div><!-- /panel-inspection -->
+
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()">
+      Submit Report →
+    </button>
+
+  </div><!-- /container -->
+</div><!-- /main-content -->
+
+<!-- Success screen -->
+<div class="container" id="success-screen">
+  <div class="success-icon">✅</div>
+  <div class="success-title">Report Submitted!</div>
+  <div class="success-sub">Your report has been logged and the office has been notified.</div>
+  <button class="new-report-btn" onclick="resetForm()">Submit Another Report</button>
+</div>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Submitting report…</div>
+</div>
+
+<script>
+  // ─── CONFIGURATION ───────────────────────────────────────────
+  // After deploying the Apps Script, paste the Web App URL here:
+  const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/pisoev.com/s/AKfycbwCijp2QzYVfwlDYuFilSBUYeyp5jfnt4EDE2zUajjbuxnMSCpcW47tNBbJ9xCCi9av/exec';
+  // ─────────────────────────────────────────────────────────────
+
+  let currentTab = 'completion';
+  let photoFiles = {}; // keyed by panel id
+
+  // Checklist items for inspection
+  const checklistItems = [
+    { id: 'elec-service', label: 'Electrical service / panel capacity adequate' },
+    { id: 'conduit', label: 'Conduit and wiring in good condition' },
+    { id: 'mount-surface', label: 'Mounting surface suitable and secure' },
+    { id: 'evse-physical', label: 'EVSE unit – no physical damage' },
+    { id: 'display-ui', label: 'Display / UI functioning correctly' },
+    { id: 'charging-func', label: 'Charging functionality verified' },
+    { id: 'network', label: 'Network / connectivity operational' },
+    { id: 'gfci', label: 'GFCI protection present and tested' },
+    { id: 'grounding', label: 'Grounding verified' },
+    { id: 'safety-labels', label: 'Safety labels and signage in place' },
+    { id: 'parking', label: 'Parking space markings correct' },
+    { id: 'ada', label: 'ADA accessibility requirements met' },
+    { id: 'weatherproof', label: 'Weatherproofing / enclosure seal intact' },
+    { id: 'cable-mgmt', label: 'Cable management and holster functional' },
+  ];
+
+  function buildChecklist() {
+    const container = document.getElementById('checklist-items');
+    checklistItems.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'checklist-item';
+      div.innerHTML = `
+        <span class="checklist-label">${item.label}</span>
+        <div class="check-options" style="display:flex;gap:0;">
+          <input class="tri-opt pass-opt" type="radio" name="chk-${item.id}" id="pass-${item.id}" value="PASS">
+          <label class="tri-lbl" for="pass-${item.id}" style="border-radius:6px 0 0 6px;">PASS</label>
+          <input class="tri-opt fail-opt" type="radio" name="chk-${item.id}" id="fail-${item.id}" value="FAIL">
+          <label class="tri-lbl" for="fail-${item.id}" style="border-left:none;">FAIL</label>
+          <input class="tri-opt na-opt" type="radio" name="chk-${item.id}" id="na-${item.id}" value="N/A">
+          <label class="tri-lbl" for="na-${item.id}" style="border-left:none;border-radius:0 6px 6px 0;">N/A</label>
+        </div>`;
+      container.appendChild(div);
+    });
+
+    // Style the tri-state buttons with JS since CSS sibling selector is limited
+    document.querySelectorAll('.tri-opt').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const name = this.name;
+        document.querySelectorAll(`[name="${name}"]`).forEach(r => {
+          const lbl = r.nextElementSibling;
+          lbl.style.background = '';
+          lbl.style.color = '#888';
+          lbl.style.borderColor = '#dce3ec';
+        });
+        const lbl = this.nextElementSibling;
+        if (this.classList.contains('pass-opt')) {
+          lbl.style.background = '#27ae60'; lbl.style.color = 'white'; lbl.style.borderColor = '#27ae60';
+        } else if (this.classList.contains('fail-opt')) {
+          lbl.style.background = '#e74c3c'; lbl.style.color = 'white'; lbl.style.borderColor = '#e74c3c';
+        } else {
+          lbl.style.background = '#95a5a6'; lbl.style.color = 'white'; lbl.style.borderColor = '#95a5a6';
+        }
+      });
+    });
+  }
+
+  function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+  }
+
+  function handlePhotos(input, previewId) {
+    const panelKey = previewId;
+    if (!photoFiles[panelKey]) photoFiles[panelKey] = [];
+
+    Array.from(input.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        photoFiles[panelKey].push({ name: file.name, data: e.target.result });
+        renderPreviews(panelKey);
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = ''; // reset so same file can be re-added
+  }
+
+  function renderPreviews(panelKey) {
+    const container = document.getElementById(panelKey);
+    container.innerHTML = '';
+    (photoFiles[panelKey] || []).forEach((photo, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      thumb.innerHTML = `<img src="${photo.data}" alt="photo ${i+1}">
+        <button class="photo-remove" onclick="removePhoto('${panelKey}', ${i})">×</button>`;
+      container.appendChild(thumb);
+    });
+  }
+
+  function removePhoto(panelKey, index) {
+    photoFiles[panelKey].splice(index, 1);
+    renderPreviews(panelKey);
+  }
+
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  function getChecked(name) {
+    const el = document.querySelector(`[name="${name}"]:checked`);
+    return el ? el.value : '';
+  }
+
+  function getChecklist() {
+    const results = {};
+    checklistItems.forEach(item => {
+      results[item.label] = getChecked('chk-' + item.id) || '—';
+    });
+    return results;
+  }
+
+  async function submitForm() {
+    // Basic validation
+    if (!getVal('tech-name')) { alert('Please select your name.'); return; }
+    if (!getVal('job-date')) { alert('Please enter the date.'); return; }
+    if (!getVal('site-location')) { alert('Please enter the site location.'); return; }
+
+    const tab = currentTab;
+
+    if (tab === 'completion' && !getVal('work-performed')) {
+      alert('Please describe the work performed.'); return;
+    }
+    if (tab === 'issue' && (!getVal('problem-desc') || !getVal('resolution'))) {
+      alert('Please fill in the problem description and resolution/next steps.'); return;
+    }
+
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_APPS')) {
+      alert('⚠️ The Apps Script URL has not been configured yet.\n\nAsk your office to complete setup and share the updated form link.');
+      return;
+    }
+
+    // Build payload
+    const common = {
+      formType: tab === 'completion' ? 'Job Completion' : tab === 'issue' ? 'Issue Ticket' : 'Site Inspection',
+      techName: getVal('tech-name'),
+      date: getVal('job-date'),
+      time: getVal('job-time'),
+      siteLocation: getVal('site-location'),
+      workOrder: getVal('work-order'),
+      chargerId: getVal('charger-id'),
+      submittedAt: new Date().toISOString(),
+    };
+
+    let specific = {};
+    let photos = [];
+
+    if (tab === 'completion') {
+      specific = {
+        workType: getVal('work-type'),
+        workPerformed: getVal('work-performed'),
+        partsUsed: getVal('parts-used'),
+        hoursOnSite: getVal('hours-on-site'),
+        travelHours: getVal('travel-hours'),
+        jobStatus: getChecked('job-status'),
+        notes: getVal('notes-completion'),
+      };
+      photos = photoFiles['preview-completion'] || [];
+    } else if (tab === 'issue') {
+      specific = {
+        problemDescription: getVal('problem-desc'),
+        severity: getChecked('severity'),
+        equipmentStatus: getVal('equip-status'),
+        errorCodes: getVal('error-codes'),
+        troubleshootingSteps: getVal('troubleshooting'),
+        resolution: getVal('resolution'),
+        partsNeeded: getVal('parts-needed'),
+        escalationNeeded: document.getElementById('escalation-needed').checked ? 'YES' : 'No',
+        notes: getVal('notes-issue'),
+      };
+      photos = photoFiles['preview-issue'] || [];
+    } else {
+      specific = {
+        inspectionType: getVal('inspection-type'),
+        checklist: getChecklist(),
+        overallRating: getChecked('site-rating'),
+        actionItems: getVal('action-items'),
+        reinspectionNeeded: document.getElementById('reinspection-needed').checked ? 'YES' : 'No',
+        notes: getVal('notes-inspection'),
+      };
+      photos = photoFiles['preview-inspection'] || [];
+    }
+
+    const payload = { ...common, ...specific, photos };
+
+    // Show loading
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('submit-btn').disabled = true;
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('main-content').style.display = 'none';
+      document.querySelector('.form-type-tabs').style.display = 'none';
+      document.getElementById('success-screen').classList.add('show');
+
+    } catch (err) {
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('submit-btn').disabled = false;
+      alert('Submission failed. Please check your connection and try again.\n\n' + err.message);
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('main-content').style.display = 'block';
+    document.querySelector('.form-type-tabs').style.display = 'flex';
+    document.getElementById('success-screen').classList.remove('show');
+    document.getElementById('submit-btn').disabled = false;
+    photoFiles = {};
+    document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(el => el.value = '');
+    document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+    document.querySelectorAll('.photo-previews').forEach(el => el.innerHTML = '');
+    document.getElementById('job-date').value = today();
+    // reset checklist styling
+    document.querySelectorAll('.tri-lbl').forEach(lbl => {
+      lbl.style.background = ''; lbl.style.color = '#888'; lbl.style.borderColor = '#dce3ec';
+    });
+  }
+
+  function today() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // Init
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('job-date').value = today();
+    buildChecklist();
+  });
+</script>
+</body>
+</html>
