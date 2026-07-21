@@ -177,10 +177,7 @@
     /* Rating stars */
     .star-group { display: flex; gap: 6px; }
     .star-input { display: none; }
-    .star-label { font-size: 28px; cursor: pointer; color: #dce3ec; transition: color 0.15s; }
-    .star-input:checked ~ .star-label { color: #f39c12; }
-    .star-group:hover .star-label { color: #f39c12; }
-    .star-label:hover ~ .star-label { color: #dce3ec; }
+    .star-label { font-size: 28px; cursor: pointer; color: #dce3ec; transition: color 0.15s; user-select: none; }
 
     /* Photo upload */
     .photo-upload-area {
@@ -343,18 +340,20 @@
   </div>
 </header>
 
-<!-- Tab navigation -->
-<div class="form-type-tabs">
+<!-- Tab navigation (hidden when dispatched with a specific type) -->
+<div class="form-type-tabs" id="tab-nav">
   <button class="tab-btn active" onclick="switchTab('completion', this)">
-    <span class="tab-icon">✅</span>Job Complete
+    <span class="tab-icon">✅</span>Project Closeout
   </button>
   <button class="tab-btn" onclick="switchTab('issue', this)">
     <span class="tab-icon">⚠️</span>Issue Ticket
   </button>
   <button class="tab-btn" onclick="switchTab('inspection', this)">
-    <span class="tab-icon">🔍</span>Inspection
+    <span class="tab-icon">🔍</span>Service Ticket
   </button>
 </div>
+<!-- Dispatched form type banner (shown instead of tabs when type is locked) -->
+<div id="form-type-banner" style="display:none; background:#1a3a5c; color:white; padding:12px 20px; font-size:14px; font-weight:600; letter-spacing:0.3px;"></div>
 
 <div id="main-content">
   <div class="container">
@@ -606,16 +605,16 @@
       <div class="section">
         <div class="section-title">Overall Site Condition</div>
         <div class="star-group" id="star-rating">
-          <input class="star-input" type="radio" name="site-rating" id="star5" value="5">
-          <input class="star-input" type="radio" name="site-rating" id="star4" value="4">
-          <input class="star-input" type="radio" name="site-rating" id="star3" value="3" checked>
-          <input class="star-input" type="radio" name="site-rating" id="star2" value="2">
           <input class="star-input" type="radio" name="site-rating" id="star1" value="1">
-          <label class="star-label" for="star5">★</label>
-          <label class="star-label" for="star4">★</label>
-          <label class="star-label" for="star3">★</label>
-          <label class="star-label" for="star2">★</label>
-          <label class="star-label" for="star1">★</label>
+          <input class="star-input" type="radio" name="site-rating" id="star2" value="2">
+          <input class="star-input" type="radio" name="site-rating" id="star3" value="3" checked>
+          <input class="star-input" type="radio" name="site-rating" id="star4" value="4">
+          <input class="star-input" type="radio" name="site-rating" id="star5" value="5">
+          <span class="star-label" data-value="1">★</span>
+          <span class="star-label" data-value="2">★</span>
+          <span class="star-label" data-value="3">★</span>
+          <span class="star-label" data-value="4">★</span>
+          <span class="star-label" data-value="5">★</span>
         </div>
         <p style="font-size:12px;color:#888;margin-top:8px;">1 = Poor · 5 = Excellent</p>
       </div>
@@ -844,7 +843,7 @@
 
     // Build payload
     const common = {
-      formType: tab === 'completion' ? 'Job Completion' : tab === 'issue' ? 'Issue Ticket' : 'Site Inspection',
+      formType: tab === 'completion' ? 'Project Closeout' : tab === 'issue' ? 'Issue Ticket' : 'Service Ticket',
       techName: getVal('tech-name'),
       date: getVal('job-date'),
       time: getVal('job-time'),
@@ -966,7 +965,40 @@
         tab === 'completion' ? 1 : tab === 'issue' ? 2 : 3
       })`);
       if (tabBtn) switchTab(tab, tabBtn);
+
+      // Lock the form type — hide tabs, show banner instead
+      const labels = { completion: '✅ Project Closeout', issue: '⚠️ Issue Ticket', inspection: '🔍 Service Ticket' };
+      document.getElementById('tab-nav').style.display = 'none';
+      const banner = document.getElementById('form-type-banner');
+      banner.style.display = 'block';
+      banner.textContent = labels[tab] || tab;
     }
+  }
+
+  // ─── STAR RATING (JS-driven) ────────────────────────────────────
+  function initStars() {
+    const labels = document.querySelectorAll('#star-rating .star-label');
+    updateStarDisplay(3);
+    labels.forEach(label => {
+      label.addEventListener('click', () => {
+        const val = parseInt(label.dataset.value);
+        document.getElementById('star' + val).checked = true;
+        updateStarDisplay(val);
+      });
+      label.addEventListener('mouseover', () => {
+        updateStarDisplay(parseInt(label.dataset.value));
+      });
+      label.addEventListener('mouseout', () => {
+        const checked = document.querySelector('[name="site-rating"]:checked');
+        updateStarDisplay(checked ? parseInt(checked.value) : 3);
+      });
+    });
+  }
+
+  function updateStarDisplay(rating) {
+    document.querySelectorAll('#star-rating .star-label').forEach((label, i) => {
+      label.style.color = (i < rating) ? '#f39c12' : '#dce3ec';
+    });
   }
 
   // Init
@@ -974,6 +1006,7 @@
     document.getElementById('job-date').value = today();
     buildChecklist();
     applyUrlParams();
+    initStars();
   });
 </script>
 </body>
