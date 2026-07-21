@@ -405,7 +405,7 @@
         <div class="upload-text">Tap to attach files</div>
         <div class="upload-sub">Photos, diagrams, PDFs, Word docs, etc.</div>
       </div>
-      <p class="hint" style="margin-top:8px;">Files are uploaded to Google Drive and a link is included in the tech's email.</p>
+      <p class="hint" style="margin-top:8px;">Files will be attached directly to the tech's email.</p>
       <div class="file-list" id="file-list"></div>
     </div>
   </div>
@@ -423,12 +423,20 @@
 
 </div>
 
+<!-- Hidden form for Apps Script submission -->
+<iframe name="dispatch-submit-frame" style="display:none"></iframe>
+<form id="dispatch-submit-form" method="POST"
+      action="https://script.google.com/a/macros/pisoev.com/s/AKfycbwCijp2QzYVfwlDYuFilSBUYeyp5jfnt4EDE2zUajjbuxnMSCpcW47tNBbJ9xCCi9av/exec"
+      target="dispatch-submit-frame" style="display:none">
+  <input type="hidden" name="data" id="dispatch-payload">
+</form>
+
 <!-- Success screen (outside container, full page) -->
 <div id="success-screen">
   <div class="success-icon">✅</div>
   <div class="success-title">Assignment Sent!</div>
   <div class="success-sub" id="success-detail"></div>
-  <div class="success-detail">A Gmail compose window opened in a new tab — make sure to hit Send if you haven't already.</div>
+  <div class="success-detail">The email has been sent directly to the tech with all attachments included.</div>
   <button class="another-btn" onclick="resetForm()">Send Another Assignment</button>
 </div>
 
@@ -448,16 +456,43 @@
 
   // ── File handling ────────────────────────────────────────────────
   function handleFiles(input) {
-    const newFiles = Array.from(input.files);
-    newFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        attachedFiles.push({ name: file.name, size: file.size, data: e.target.result });
-        renderFileList();
-      };
-      reader.readAsDataURL(file);
+    Array.from(input.files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        compressImage(file, compressed => {
+          attachedFiles.push(compressed);
+          renderFileList();
+        });
+      } else {
+        const reader = new FileReader();
+        reader.onload = e => {
+          attachedFiles.push({ name: file.name, size: file.size, data: e.target.result });
+          renderFileList();
+        };
+        reader.readAsDataURL(file);
+      }
     });
     input.value = '';
+  }
+
+  function compressImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 1200;
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round(height * maxSize / width); width = maxSize; }
+          else { width = Math.round(width * maxSize / height); height = maxSize; }
+        }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        callback({ name: file.name, size: file.size, data: canvas.toDataURL('image/jpeg', 0.75) });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function renderFileList() {
@@ -551,86 +586,43 @@
                     : tab === 'issue'      ? 'Issue Ticket'
                     :                        'Site Inspection';
     const workorder = document.getElementById('workorder').value.trim();
+    const charger = document.getElementById('charger').value.trim();
+    const date = document.getElementById('job-date').value;
     const instructions = document.getElementById('instructions').value.trim();
     const dispatcherName = dispatcher.value;
+    const dispatcherEmail = dispatcher.dataset.email;
 
-    // ── Upload files first if any ──
-    let driveLinks = [];
-    if (attachedFiles.length > 0) {
-      document.getElementById('loading').classList.add('show');
-      document.getElementById('send-btn').disabled = true;
+    // ── Build payload and submit via hidden form ──
+    const payload = {
+      requestType: 'dispatch',
+      dispatcherName,
+      dispatcherEmail,
+      techName,
+      techEmail,
+      formType: tab,
+      site,
+      workOrder: workorder,
+      charger,
+      date,
+      instructions,
+      formBaseUrl: FORM_BASE_URL,
+      files: attachedFiles.map(f => ({ name: f.name, data: f.data })),
+    };
 
-      try {
-        const uploadPayload = {
-          requestType: 'dispatch_upload',
-          dispatcher: dispatcherName,
-          site: site,
-          files: attachedFiles.map(f => ({ name: f.name, data: f.data })),
-        };
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('send-btn').disabled = true;
 
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(uploadPayload),
-        });
+    document.getElementById('dispatch-payload').value = JSON.stringify(payload);
+    document.getElementById('dispatch-submit-form').submit();
 
-        const result = await response.json();
-        driveLinks = result.links || [];
-      } catch (err) {
-        // If upload fails, still send email but note it
-        console.error('Upload failed:', err);
-        driveLinks = [];
-      }
-
+    setTimeout(() => {
       document.getElementById('loading').classList.remove('show');
-    }
-
-    // ── Build email body ──
-    const subject = `Job Assignment: ${formLabel} – ${site}${workorder ? ' [' + workorder + ']' : ''}`;
-
-    const lines = [
-      `Hi ${techFirstName},`,
-      '',
-      `You've been assigned a ${formLabel} at ${site}.${workorder ? ' Work Order: ' + workorder + '.' : ''}`,
-    ];
-
-    if (instructions) {
-      lines.push('');
-      lines.push(`Notes from ${dispatcherName}:`);
-      lines.push(instructions);
-    }
-
-    if (driveLinks.length > 0) {
-      lines.push('');
-      lines.push(`Reference files from ${dispatcherName} (${driveLinks.length} attachment${driveLinks.length > 1 ? 's' : ''}):`);
-      driveLinks.forEach(link => {
-        lines.push(`  • ${link.name}: ${link.url}`);
-      });
-    }
-
-    lines.push('');
-    lines.push('Use the link below to complete your report and submit photos when on site:');
-    lines.push('');
-    lines.push(url);
-    lines.push('');
-    lines.push('Your name and job details are already filled in — just complete the form and hit Submit.');
-    lines.push('');
-    lines.push(`– ${dispatcherName}`);
-    lines.push('PISO Field Operations');
-
-    const body = lines.join('\n');
-
-    // ── Open Gmail compose window ──
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(techEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(gmailUrl, '_blank');
-
-    // Show success screen
-    document.querySelector('.container').style.display = 'none';
-    const screen = document.getElementById('success-screen');
-    screen.classList.add('show');
-    document.getElementById('success-detail').textContent =
-      `${techName} has been assigned a ${formLabel} at ${site}.`;
-    document.getElementById('send-btn').disabled = false;
+      document.querySelector('.container').style.display = 'none';
+      document.getElementById('success-screen').classList.add('show');
+      document.getElementById('success-detail').textContent =
+        `${techName} has been assigned a ${formLabel} at ${site}. Their email has been sent${attachedFiles.length > 0 ? ` with ${attachedFiles.length} attachment${attachedFiles.length > 1 ? 's' : ''}` : ''}.`;
+      document.getElementById('send-btn').disabled = false;
+    }, 2000);
   }
 
   function resetForm() {
