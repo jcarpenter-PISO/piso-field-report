@@ -17,20 +17,26 @@
     header {
       background: #1a3a5c;
       color: white;
-      padding: 16px 20px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       position: sticky;
       top: 0;
       z-index: 100;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    header svg { flex-shrink: 0; }
+    .header-logo {
+      height: 44px;
+      width: auto;
+      flex-shrink: 0;
+      /* fallback hidden until img loads */
+    }
+    .header-logo-fallback { flex-shrink: 0; }
 
-    header h1 { font-size: 18px; font-weight: 600; }
-    header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; }
+    header p { font-size: 12px; opacity: 0.8; margin-top: 3px; font-weight: 500; }
 
     .form-type-tabs {
       display: flex;
@@ -328,15 +334,17 @@
 <body>
 
 <header>
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <rect width="32" height="32" rx="8" fill="#2e86de"/>
-    <path d="M8 22 L16 10 L24 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="16" cy="10" r="2" fill="white"/>
-    <rect x="11" y="18" width="10" height="2.5" rx="1.25" fill="white"/>
+  <!-- Logo: upload piso-logo.png to GitHub repo root and this will display automatically -->
+  <img class="header-logo" src="./piso-logo.png" alt="PISO"
+       onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+  <!-- Fallback SVG bolt (shows if logo file not found) -->
+  <svg id="logo-fallback" style="display:none; flex-shrink:0;" width="30" height="40" viewBox="0 0 30 40" fill="none">
+    <path d="M5 2 C5 1 6 0 7 0 L24 0 C25.5 0 26 1 25.5 2.5 L16 22 L26 22 C27.5 22 27.5 24 26 25 L6 40 C4.5 41 3.5 39.5 4.5 38 L14 22 L4 22 C2.5 22 2.5 20 4 19 Z" fill="#5ec542"/>
+    <path d="M8 6 C8 5 9 4 10 4 L24 4 C25.5 4 26 5 25.5 6.5 L19 22 L26 22 C27.5 22 27.5 24 26 25 L9 40 C7.5 41 6.5 39.5 7.5 38 L17 25 L7 25 C5.5 25 5.5 23 7 22 Z" fill="#1a7a38" opacity="0.75"/>
   </svg>
   <div>
-    <h1>PISO Field Report</h1>
-    <p>EV Infrastructure Field Operations</p>
+    <h1>PISO Field Operations</h1>
+    <p id="header-subtitle">Project Closeout</p>
   </div>
 </header>
 
@@ -385,8 +393,19 @@
           <input type="date" id="job-date" required>
         </div>
         <div class="field">
-          <label>Time On Site</label>
-          <input type="time" id="job-time">
+          <label>Arrival Time</label>
+          <input type="time" id="arrival-time">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Departure Time</label>
+          <input type="time" id="departure-time">
+        </div>
+        <div class="field">
+          <label>Travel Time (If Any)</label>
+          <input type="number" id="travel-hours" min="0" max="24" step="0.5" placeholder="hrs e.g. 1.5">
         </div>
       </div>
 
@@ -439,15 +458,9 @@
           <textarea id="parts-used" placeholder="List parts, quantities, part numbers…" style="min-height:64px;"></textarea>
         </div>
 
-        <div class="row-2">
-          <div class="field">
-            <label>Hours On Site</label>
-            <input type="number" id="hours-on-site" min="0" max="24" step="0.5" placeholder="e.g. 2.5">
-          </div>
-          <div class="field">
-            <label>Travel Hours</label>
-            <input type="number" id="travel-hours" min="0" max="24" step="0.5" placeholder="e.g. 1.0">
-          </div>
+        <div class="field" style="max-width:50%;">
+          <label>Hours On Site</label>
+          <input type="number" id="hours-on-site" min="0" max="24" step="0.5" placeholder="e.g. 2.5">
         </div>
       </div>
 
@@ -743,12 +756,15 @@
     });
   }
 
+  const TAB_LABELS = { completion: 'Project Closeout', issue: 'Service Ticket', inspection: 'Inspection' };
+
   function switchTab(tab, btn) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('header-subtitle').textContent = TAB_LABELS[tab] || tab;
   }
 
   function handlePhotos(input, previewId) {
@@ -846,7 +862,9 @@
       formType: tab === 'completion' ? 'Project Closeout' : tab === 'issue' ? 'Service Ticket' : 'Inspection',
       techName: getVal('tech-name'),
       date: getVal('job-date'),
-      time: getVal('job-time'),
+      arrivalTime: getVal('arrival-time'),
+      departureTime: getVal('departure-time'),
+      travelHours: getVal('travel-hours'),
       siteLocation: getVal('site-location'),
       workOrder: getVal('work-order'),
       chargerId: getVal('charger-id'),
@@ -862,7 +880,6 @@
         workPerformed: getVal('work-performed'),
         partsUsed: getVal('parts-used'),
         hoursOnSite: getVal('hours-on-site'),
-        travelHours: getVal('travel-hours'),
         jobStatus: getChecked('job-status'),
         notes: getVal('notes-completion'),
       };
@@ -921,6 +938,9 @@
     document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
     document.querySelectorAll('.photo-previews').forEach(el => el.innerHTML = '');
     document.getElementById('job-date').value = today();
+    document.getElementById('arrival-time').value = '';
+    document.getElementById('departure-time').value = '';
+    document.getElementById('header-subtitle').textContent = 'Project Closeout';
     // reset checklist styling
     document.querySelectorAll('.tri-lbl').forEach(lbl => {
       lbl.style.background = ''; lbl.style.color = '#888'; lbl.style.borderColor = '#dce3ec';
@@ -972,6 +992,8 @@
       const banner = document.getElementById('form-type-banner');
       banner.style.display = 'block';
       banner.textContent = labels[tab] || tab;
+      // Update header subtitle to match form type
+      document.getElementById('header-subtitle').textContent = TAB_LABELS[tab] || tab;
     }
   }
 
