@@ -346,10 +346,10 @@
     <span class="tab-icon">✅</span>Project Closeout
   </button>
   <button class="tab-btn" onclick="switchTab('issue', this)">
-    <span class="tab-icon">⚠️</span>Issue Ticket
+    <span class="tab-icon">⚠️</span>Service Ticket
   </button>
   <button class="tab-btn" onclick="switchTab('inspection', this)">
-    <span class="tab-icon">🔍</span>Service Ticket
+    <span class="tab-icon">🔍</span>Inspection
   </button>
 </div>
 <!-- Dispatched form type banner (shown instead of tabs when type is locked) -->
@@ -397,7 +397,7 @@
 
       <div class="row-2">
         <div class="field">
-          <label>Work Order #</label>
+          <label>Work Order/Ticket/Job #</label>
           <input type="text" id="work-order" placeholder="WO-00000">
         </div>
         <div class="field">
@@ -843,7 +843,7 @@
 
     // Build payload
     const common = {
-      formType: tab === 'completion' ? 'Project Closeout' : tab === 'issue' ? 'Issue Ticket' : 'Service Ticket',
+      formType: tab === 'completion' ? 'Project Closeout' : tab === 'issue' ? 'Service Ticket' : 'Inspection',
       techName: getVal('tech-name'),
       date: getVal('job-date'),
       time: getVal('job-time'),
@@ -967,7 +967,7 @@
       if (tabBtn) switchTab(tab, tabBtn);
 
       // Lock the form type — hide tabs, show banner instead
-      const labels = { completion: '✅ Project Closeout', issue: '⚠️ Issue Ticket', inspection: '🔍 Service Ticket' };
+      const labels = { completion: '✅ Project Closeout', issue: '⚠️ Service Ticket', inspection: '🔍 Inspection' };
       document.getElementById('tab-nav').style.display = 'none';
       const banner = document.getElementById('form-type-banner');
       banner.style.display = 'block';
